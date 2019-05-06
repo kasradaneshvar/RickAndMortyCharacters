@@ -15,4 +15,5 @@ class CharacterCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var label: UILabel!
     
     @IBOutlet weak var spinner: UIActivityIndicatorView!
+    
 }

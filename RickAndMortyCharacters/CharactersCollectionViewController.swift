@@ -8,84 +8,84 @@
 
 import UIKit
 
-private let reuseIdentifier = "Cell"
-
 let characterURL = URL(string: "https://rickandmortyapi.com/api/character/")
 
 class CharactersCollectionViewController: UICollectionViewController {
     
-    var characterCount: Int?
-
+    var characterCount: Int? {
+        didSet {
+            collectionView.reloadData()
+        }
+    }
+    
     @IBOutlet weak var spinner: UIActivityIndicatorView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Register cell classes
-        
-//        self.collectionView!.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "CharacterCell")
-
-        // Do any additional setup after loading the view.
         if characterCount == nil {
             fetchCharacterCount()
         }
     }
-
+    
     private func fetchCharacterCount() {
         spinner.startAnimating()
-        // Or else I'd get a 'unwrap optional' error.
-        //  Didn't get the logic much.
         if let url = characterURL {
             DispatchQueue.global(qos: .default).async { [weak self] in
                 if let jsonData = try? Data(contentsOf: url) {
-                    DispatchQueue.main.async {
-                        if let pagination = try? JSONDecoder().decode(Pagination.self, from: jsonData) {
-                            self?.characterCount = pagination.info.count
-                            self?.spinner.stopAnimating()
-                            print(self?.characterCount)
-                        } else {
-                            print("Can't decode JSON")
-                        }
+                    if let pagination = try? JSONDecoder().decode(Pagination.self, from: jsonData) {
+                        self?.characterCount = pagination.info.count
+//                        DispatchQueue.main.async {
+//                            self?.spinner.stopAnimating()
+//                        }
                     }
-                } else {
-                    print("Can't get `url` content")
                 }
             }
         }
     }
     
-
-    /*
+    
+    
     // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    // ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ id might be nil
+    // id is not indexPath.item
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using [segue destinationViewController].
-        // Pass the selected object to the new view controller.
+        if segue.identifier == "Show Info Detail" {
+            if let indexPath = sender as? IndexPath {
+                if let ctvc = segue.destination as? CharacterDetailViewController {
+                    ctvc.characterIdentifier = indexPath.item + 1
+                    if let (name, image) = characterCellInfo[indexPath.item + 1] {
+                        ctvc.characterImage = image
+                        ctvc.characterName = name
+                    }
+                }
+            }
+            
+        }
     }
-    */
-
+    
     // MARK: UICollectionViewDataSource
-
+    
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 1
     }
-
-
+    
+    
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 493
+        return 493 //characterCount ?? 0
     }
-
-//    var characterCellInfo: (identifier: Int?, name: String?, image: UIImage?)
     
     var characterCellInfo: [Int:(String?, UIImage?)] = [:]
     
     private func fetchCellInfo(forCharacterIdentifier characterIdentifier: Int) {
-//        characterCellInfo.identifier = characterIdentifier
         if characterCellInfo[characterIdentifier] == nil {
+            // 🔺 There is a catch here: if `fetchCe..ier` is called
+            //  again before the thread returns, there would be an
+            //  overwrite and probably a crash. Couldn't find a good
+            //  way to avoid that except by adding a 'nil-ish' value
+            //  for the key. Perhaps something like `addKey` and optional
+            //  values would have been better but that would cause other
+            //  problems/errors.
+            characterCellInfo[characterIdentifier] = (nil, nil)
             if let url = characterURL?.appendingPathComponent(String(characterIdentifier)) {
                 DispatchQueue.global(qos: .default).async { [weak self] in
                     if let jsonData = try? Data(contentsOf: url) {
@@ -96,15 +96,10 @@ class CharactersCollectionViewController: UICollectionViewController {
                                     let image = UIImage(data: imageData)
                                     self?.characterCellInfo[characterIdentifier] = (name, image)
                                     DispatchQueue.main.async {
-                                        self?.collectionView.reloadItems(at: [IndexPath(item: characterIdentifier, section: 0)])
+                                        self?.collectionView.reloadItems(at: [IndexPath(item: characterIdentifier - 1, section: 0)])
                                     }
-                                } else {
-                                    print("error: add key:value")
                                 }
-                                
                             }
-                        } else {
-                            print("character json decode error")
                         }
                     }
                 }
@@ -112,15 +107,18 @@ class CharactersCollectionViewController: UICollectionViewController {
         }
     }
     
+    // ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️ 'name' sometimes doesn't show up
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        spinner.stopAnimating()
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CharacterCell", for: indexPath)
         if let characterCell = cell as? CharacterCollectionViewCell {
             characterCell.spinner.startAnimating()
-            if characterCellInfo[indexPath.item] == nil {
-                fetchCellInfo(forCharacterIdentifier: indexPath.item)
+            let characterIdentifier = indexPath.item + 1
+            if characterCellInfo[characterIdentifier] == nil {
+                fetchCellInfo(forCharacterIdentifier: characterIdentifier)
             }
             print(indexPath.item)
-            if let (name, image) = characterCellInfo[indexPath.item] {
+            if let (name, image) = characterCellInfo[characterIdentifier] {
                 if let cellLabelText = name, let cellImage = image {
                     characterCell.image.image = cellImage
                     characterCell.label.text = cellLabelText
@@ -132,37 +130,21 @@ class CharactersCollectionViewController: UICollectionViewController {
     }
     
     
+    override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        self.performSegue(withIdentifier: "Show Info Detail", sender: indexPath)
+    }
     
-
-    // MARK: UICollectionViewDelegate
-
-    /*
-    // Uncomment this method to specify if the specified item should be highlighted during tracking
-    override func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
-        return true
-    }
-    */
-
-    /*
-    // Uncomment this method to specify if the specified item should be selected
-    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        return true
-    }
-    */
-
-    /*
-    // Uncomment these methods to specify if an action menu should be displayed for the specified item, and react to actions performed on the item
-    override func collectionView(_ collectionView: UICollectionView, shouldShowMenuForItemAt indexPath: IndexPath) -> Bool {
-        return false
-    }
-
-    override func collectionView(_ collectionView: UICollectionView, canPerformAction action: Selector, forItemAt indexPath: IndexPath, withSender sender: Any?) -> Bool {
-        return false
-    }
-
-    override func collectionView(_ collectionView: UICollectionView, performAction action: Selector, forItemAt indexPath: IndexPath, withSender sender: Any?) {
     
-    }
-    */
-
+    /*
+     // TODO
+     // A `func` that returns JSON from a URL.
+     // Problem is `return` from within a queue.
+     func fetchJSONData(fromURL url: URL) -> Data? {
+     DispatchQueue.global(qos: .default).async {
+     if let jsonData = try? Data(contentsOf: url) {
+     return jsonData
+     }
+     }
+     */
+    
 }
