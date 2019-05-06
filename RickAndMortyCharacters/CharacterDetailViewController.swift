@@ -22,7 +22,8 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     @IBOutlet weak var characterNameLabel: UILabel!
     
-    @IBOutlet weak var addToFavorite: UIButton!
+    @IBAction func addToFavorite(_ sender: UIButton) {
+    }
     
     @IBOutlet weak var characterInfoTableView: UITableView! {
         didSet {
@@ -33,7 +34,6 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
         updateViewFromModel()
     }
     
@@ -44,11 +44,52 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
+    // 🔺 This is by far the best idea for getting the JSON info
+    //  in a way that is (a) `Sequence` and (b) patitioned. But it
+    //  is obviously impractical if the keys were to be many. Converting
+    //  to Array didn't help much because the structure would have been
+    //  complicated and also many entries were unwanted.
+    var aboutCharacter: [(String, String)]?
+    var characterLocationDetail: [(String, String)]?
+    
+    var characterInfo: CharacterInfo? {
+        didSet {
+            aboutCharacter = characterInfo?.about()
+            characterLocationDetail = characterInfo?.location.about()
+        }
+    }
+    
+
+    
+//    private func fetchCharacterInfo(forCharacterIdentifier characterIdentifier: Int) {
+//        if let url = characterURL?.appendingPathComponent(String(characterIdentifier)) {
+//            DispatchQueue.global(qos: .default).async { [weak self] in
+//                if let jsonData = try? Data(contentsOf: url) {
+//                    if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
+//                        self?.characterInfo = characterInfo
+//                    }
+//                } else {
+//                    print("character json decode error")
+//                }
+//            }
+//        }
+//    }
 
     
     // MARK: -UITableViewDataSource
     func numberOfSections(in tableView: UITableView) -> Int {
         return 2
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        
+        let sectionName: String
+        switch section {
+        case 0: sectionName = "About"
+        case 1: sectionName = "Location"
+        default: sectionName = ""
+        }
+        return sectionName
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -59,70 +100,26 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
-//    private func fetchCellInfo(forCharacterIdentifier characterIdentifier: Int) {
-//        //        characterCellInfo.identifier = characterIdentifier
-//        if characterCellInfo[characterIdentifier] == nil {
-//            if let url = characterURL?.appendingPathComponent(String(characterIdentifier)) {
-//                DispatchQueue.global(qos: .default).async { [weak self] in
-//                    if let jsonData = try? Data(contentsOf: url) {
-//                        if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
-//                            if let imageURL = URL(string: characterInfo.image) {
-//                                if let imageData = try? Data(contentsOf: imageURL) {
-//                                    let name = characterInfo.name
-//                                    let image = UIImage(data: imageData)
-//                                    self?.characterCellInfo[characterIdentifier] = (name, image)
-//                                    DispatchQueue.main.async {
-//                                        self?.collectionView.reloadItems(at: [IndexPath(item: characterIdentifier, section: 0)])
-//                                    }
-//                                } else {
-//                                    print("error: add key:value")
-//                                }
-//                                
-//                            }
-//                        } else {
-//                            print("character json decode error")
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
+
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = characterInfoTableView.dequeueReusableCell(withIdentifier: "Detail Cell", for: indexPath)
         if let characterDetailCell = cell as? CharacterDetailTableViewCell {
-            characterDetailCell.titleLable.text = "name"
-            characterDetailCell.contentLable.text = "Rick"
+            if indexPath.section == 0 {
+                if let (title, value) = aboutCharacter?[indexPath.item] {
+                    characterDetailCell.titleLable.text = title
+                    characterDetailCell.contentLable.text = value
+                }
+                return cell
+            } else if indexPath.section == 1 {
+                if let (title, value) = characterLocationDetail?[indexPath.item] {
+                    characterDetailCell.titleLable.text = title
+                    characterDetailCell.contentLable.text = value
+                }
+            }
         }
         return cell
-//        if let characterCell = cell as? CharacterCollectionViewCell {
-//            characterCell.spinner.startAnimating()
-//            if characterCellInfo[indexPath.item] == nil {
-//                fetchCellInfo(forCharacterIdentifier: indexPath.item)
-//            }
-//            print(indexPath.item)
-//            if let (name, image) = characterCellInfo[indexPath.item] {
-//                if let cellLabelText = name, let cellImage = image {
-//                    characterCell.image.image = cellImage
-//                    characterCell.label.text = cellLabelText
-//                    characterCell.spinner.stopAnimating()
-//                }
-//            }
-//        }
     }
-    
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        
-        let sectionName: String
-        switch section {
-        case 0:
-            sectionName = NSLocalizedString("mySectionName", comment: "mySectionName")
-        case 1:
-            sectionName = NSLocalizedString("myOtherSectionName", comment: "myOtherSectionName")
-        // ...
-        default:
-            sectionName = ""
-        }
-        return sectionName
-    }
+            
+
 }
