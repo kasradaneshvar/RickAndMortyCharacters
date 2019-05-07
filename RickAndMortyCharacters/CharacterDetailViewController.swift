@@ -9,10 +9,29 @@
 import UIKit
 
 class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
- 
-    var character: Character?
     
-    var characterIdentifier: Int?
+    // It's expected that `characteridentifier` is not `nil` after
+    //  segue. But it is an optional and apparently has to be, so
+    //  `character` has to be initialized after unwrapping `char..ier`.
+    //  Doesn't there exist a more intuitive way?
+    var character: Character? {
+        didSet {
+            if character?.isFavorite != oldValue?.isFavorite {
+                saveCharacter()
+            }
+            updateAddToFavoriteButton()
+        }
+    }
+    
+    var characterInfo: CharacterInfo? {
+        didSet {
+            aboutCharacter = characterInfo?.about()
+            characterLocationDetail = characterInfo?.location.about()
+            characterIdentifier = characterInfo?.id
+        }
+    }
+    
+    var characterIdentifier: Int!
     
     var characterImage: UIImage?
     
@@ -22,7 +41,45 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     @IBOutlet weak var characterNameLabel: UILabel!
     
+    
+    func saveCharacter() {
+        if let json = character?.json {
+            if let id = character?.characterInfo.id {
+                if let url = try?  FileManager.default.url(
+                    for: .documentDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true
+                    ).appendingPathComponent("\(id).json") {
+                    do {
+                        try json.write(to: url)
+                        print("saved successfully!")
+                    } catch let error {
+                        print("error: \(error)")
+                    }
+                }
+            } else {
+            }
+        } else {
+        }
+    }
+    
+    @IBOutlet weak var addToFavoriteButton: UIButton!
+    
     @IBAction func addToFavorite(_ sender: UIButton) {
+        character?.isFavorite.toggle()
+    }
+    
+    func updateAddToFavoriteButton() {
+        if let isFavorite = character?.isFavorite {
+            if isFavorite {
+                addToFavoriteButton.backgroundColor = #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1)
+                addToFavoriteButton.setTitle("✓ Favorite", for: UIControl.State.normal)
+            } else {
+                addToFavoriteButton.backgroundColor = #colorLiteral(red: 0.7706646697, green: 0.7706646697, blue: 0.7706646697, alpha: 1)
+                addToFavoriteButton.setTitle("Add to favorite", for: UIControl.State.normal)
+            }
+        }
     }
     
     @IBOutlet weak var characterInfoTableView: UITableView! {
@@ -37,6 +94,26 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         updateViewFromModel()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if let id = characterIdentifier {
+            if let url = try?  FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+                ).appendingPathComponent("\(id).json") {
+                if let jsonData = try? Data(contentsOf: url) {
+                    character = Character(json: jsonData)
+                } else {
+                    if let characterInfo = characterInfo {
+                        character = Character(characterInfo: characterInfo )
+                    }
+                }
+            }
+        }
+    }
+    
     func updateViewFromModel() {
         if let name = characterName, let image = characterImage {
             characterNameLabel.text = name
@@ -44,37 +121,13 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
-    // 🔺 This is by far the best idea for getting the JSON info
+    // 🔺 This is by far the "best bad" idea for getting the JSON info
     //  in a way that is (a) `Sequence` and (b) patitioned. But it
     //  is obviously impractical if the keys were to be many. Converting
     //  to Array didn't help much because the structure would have been
     //  complicated and also many entries were unwanted.
     var aboutCharacter: [(String, String)]?
     var characterLocationDetail: [(String, String)]?
-    
-    var characterInfo: CharacterInfo? {
-        didSet {
-            aboutCharacter = characterInfo?.about()
-            characterLocationDetail = characterInfo?.location.about()
-        }
-    }
-    
-
-    
-//    private func fetchCharacterInfo(forCharacterIdentifier characterIdentifier: Int) {
-//        if let url = characterURL?.appendingPathComponent(String(characterIdentifier)) {
-//            DispatchQueue.global(qos: .default).async { [weak self] in
-//                if let jsonData = try? Data(contentsOf: url) {
-//                    if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
-//                        self?.characterInfo = characterInfo
-//                    }
-//                } else {
-//                    print("character json decode error")
-//                }
-//            }
-//        }
-//    }
-
     
     // MARK: -UITableViewDataSource
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -100,7 +153,7 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
-
+    
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = characterInfoTableView.dequeueReusableCell(withIdentifier: "Detail Cell", for: indexPath)
@@ -120,6 +173,43 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
         return cell
     }
-            
-
+    
+    
+    /*
+     // Saving with `FileManager`(?).
+     @IBAction func save(_ sender: UIBarButtonItem) {
+     if let json = emojiArt?.json {
+     // "Not replacing a file so `appropriateFor: nil`"(?).
+     // Also, should add 'Supports Document Brower: Yes' to `info.plist`.
+     if let url = try?  FileManager.default.url(
+     for: .documentDirectory,
+     in: .userDomainMask,
+     appropriateFor: nil,
+     create: true
+     ).appendingPathComponent("Untitled.json") {
+     do {
+     try json.write(to: url)
+     print("saved successfully!")
+     } catch let error {
+     print("error: \(error)")
+     }
+     }
+     }
+     }
+     
+     override func viewWillAppear(_ animated: Bool) {
+     super.viewWillAppear(animated)
+     
+     if let url = try?  FileManager.default.url(
+     for: .documentDirectory,
+     in: .userDomainMask,
+     appropriateFor: nil,
+     create: true
+     ).appendingPathComponent("Untitled.json") {
+     if let jsonData = try? Data(contentsOf: url) {
+     emojiArt = EmojiArt(json: jsonData)
+     }
+     }
+     }
+     */
 }

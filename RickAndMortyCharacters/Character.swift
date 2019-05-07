@@ -8,13 +8,25 @@
 
 import Foundation
 
-struct Character {
+struct Character: Codable {
     
     var isFavorite = false
 
-    var identifier: Int
+    var characterInfo: CharacterInfo
     
-    init(identifier: Int) {
-        self.identifier = identifier
+    var json: Data? {
+        return try? JSONEncoder().encode(self)
+    }
+    
+    init(characterInfo: CharacterInfo) {
+        self.characterInfo = characterInfo
+    }
+    
+    init?(json: Data) {
+        if let newValue = try? JSONDecoder().decode(Character.self, from: json) {
+            self = newValue
+        } else {
+            return nil
+        }
     }
 }
