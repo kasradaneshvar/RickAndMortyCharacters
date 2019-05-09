@@ -19,31 +19,6 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
     @IBOutlet weak var resultsLabel: UILabel!
     
     @IBOutlet weak var cancelSearchButton: UIButton!
-    
-    var searchResultsCharacterInfo: [CharacterInfo] = [] {
-        didSet {
-            resultsTableView.reloadData()
-        }
-    }
-    
-    var lastFetchedResults: [CharacterInfo] = [] {
-        didSet {
-            lastFetchedResults.forEach { [weak self] in
-                $0.fetchImage() { results in
-                    switch results {
-                    case .success(let image): self?.searchResultCharacterImage += [image]
-                    default: print("fetchImage failed")
-                    }
-                }
-            }
-        }
-    }
-    
-    var searchResultCharacterImage: [UIImage] = [] {
-        didSet {
-            resultsTableView.reloadData()
-        }
-    }
 
     // MARK: - `resignFirstResponder`
     @IBAction func cancelSearch(_ sender: UIButton? = nil) {
@@ -52,8 +27,12 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         searchTextField.text = "Enter Character Name"
         searchTextField.textColor = #colorLiteral(red: 0.7706646697, green: 0.7706646697, blue: 0.7706646697, alpha: 1)
         cancelSearchButton.setTitleColor(#colorLiteral(red: 0.7706646697, green: 0.7706646697, blue: 0.7706646697, alpha: 1), for: UIControl.State.normal)
-        searchResultCharacterImage = []
-        searchResultsCharacterInfo = []
+        
+        idsOfHits = []
+        numberOfHits = nil
+        resultsTableView.reloadData()
+//        searchResultCharacterImage = []
+//        searchResultsCharacterInfo = []
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -78,17 +57,6 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
     var noTextHasBeenEntered = true
     
     // MARK: - UITextFieldDelegate
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        noTextHasBeenEntered = false
-        searchTextField.resignFirstResponder()
-        searchResultsCharacterInfo = []
-        searchResultCharacterImage = []
-        enteredCharacterName = searchTextField.text
-        if let url = characterFilterURL {
-            searchForCharacter(inURL: url)
-        }
-        return true
-    }
     
     func textFieldDidBeginEditing(_ textField: UITextField) {
         searchTextField.textColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
@@ -98,7 +66,47 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         }
     }
     
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        noTextHasBeenEntered = false
+        searchTextField.resignFirstResponder()
+        //        searchResultsCharacterInfo = []
+        //        searchResultCharacterImage = []
+        enteredCharacterName = searchTextField.text
+        if let url = characterFilterURL {
+            searchForCharacter(inURL: url)
+        }
+        return true
+    }
+    
+    
+    
     // MARK: Search.
+    
+//    var searchResultsCharacterInfo: [CharacterInfo] = [] {
+//        didSet {
+//            resultsTableView.reloadData()
+//        }
+//    }
+    
+//    var lastFetchedResults: [CharacterInfo] = [] {
+//        didSet {
+//            lastFetchedResults.forEach { [weak self] in
+//                $0.fetchImage() { results in
+//                    switch results {
+//                    case .success(let image): self?.searchResultCharacterImage += [image]
+//                    default: print("fetchImage failed")
+//                    }
+//                }
+//            }
+//        }
+//    }
+    
+//    var searchResultCharacterImage: [UIImage] = [] {
+//        didSet {
+//            resultsTableView.reloadData()
+//        }
+//    }
+    
     var enteredCharacterName: String? {
         didSet {
             characterFilterURLComponents.scheme = "https"
@@ -132,29 +140,62 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         }
     }
     
+    
+    // MARK: - Performing the search.
+    var numberOfHits: Int?
+    
+    var idsOfHits: [Int] = []
+    
     func searchForCharacter(inURL url: URL) {
-        // 🔺 Is ther a memory cycle?
-        DispatchQueue.global(qos: .default).async { [weak self] in
-            if let jsonData = try? Data(contentsOf: url) {
-                if let searchResults = try? JSONDecoder().decode(PageContent.self, from: jsonData) {
-                    DispatchQueue.main.async {
-                        self?.searchResultPageInfo = searchResults.info
-                        self?.searchResultsCharacterInfo += searchResults.results
-                        self?.lastFetchedResults = searchResults.results
-                        if searchResults.info.next != "" {
-                            if let url = URL(string: searchResults.info.next) {
-                                self?.searchForCharacter(inURL: url)
-                            }
-                        }
+        url.requestPageContent(forCodableType: PageContent.self) { result in
+            switch result {
+            case .success(let response):
+                // 🔺 `self` in closure.
+                self.numberOfHits = response.info.count
+                response.results.forEach { item in
+                    self.idsOfHits.append(item.id)
+                    if characterInfoDictionary[item.id] == nil {
+                        characterInfoDictionary[item.id] = item
+                        print("\(item.id) ->\(item.name)")
                     }
-
-                } else {
-//                    print("error: json")
                 }
-            } else {
-//                print("error: data fetch")
+                // 🔺🔺 `self` in closure. Very suspeciously a memory cycle.
+                if let nextURL = URL(string: response.info.next) {
+                    self.searchForCharacter(inURL: nextURL)
+                }
+            default: print("failed")
             }
         }
+        
+        // Tried very much to update rows "as data arrives". No luck.
+        resultsTableView.reloadData()
+        
+        
+        
+        
+        
+//        // 🔺 Is ther a memory cycle?
+//        DispatchQueue.global(qos: .default).async { [weak self] in
+//            if let jsonData = try? Data(contentsOf: url) {
+//                if let searchResults = try? JSONDecoder().decode(PageContent.self, from: jsonData) {
+//                    DispatchQueue.main.async {
+//                        self?.searchResultPageInfo = searchResults.info
+//                        self?.searchResultsCharacterInfo += searchResults.results
+//                        self?.lastFetchedResults = searchResults.results
+//                        if searchResults.info.next != "" {
+//                            if let url = URL(string: searchResults.info.next) {
+//                                self?.searchForCharacter(inURL: url)
+//                            }
+//                        }
+//                    }
+//
+//                } else {
+////                    print("error: json")
+//                }
+//            } else {
+////                print("error: data fetch")
+//            }
+//        }
     }
     
     // MARK: - UITableViewDelegate
@@ -167,15 +208,41 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
     
     // MARK: - UITableViewDataSource
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return searchResultsCharacterInfo.count
+        return numberOfHits ?? 0
     }
         
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = resultsTableView.dequeueReusableCell(withIdentifier: "Result Cell", for: indexPath)
         if let resultCell = cell as? ResultsTableViewCell {
-            resultCell.nameLabel.text = searchResultsCharacterInfo[indexPath.item].name
-            if let image = searchResultCharacterImage[safe: indexPath.item] {
-                resultCell.resultImageView.image = image
+            
+            if let url = blankAvatarURL {
+                if let blankAvatarData = try? Data(contentsOf: url) {
+                    
+                    if let blankAvatar = UIImage(data: blankAvatarData) {
+                        resultCell.resultImageView.image = blankAvatar
+                    }
+                }
+            }
+            
+            let characterId = idsOfHits[indexPath.item]
+            if let characterInfo = characterInfoDictionary[characterId] {
+                resultCell.nameLabel.text = characterInfo.name
+                if let image = cachedImages.object(forKey: characterInfo.image as NSString) as? UIImage {
+                    resultCell.resultImageView.image = image
+                } else {
+                    characterInfo.fetchImage { result in
+                        switch result {
+                        case .success(let image):
+                            cachedImages.setObject(image, forKey: characterInfo.image as NSString)
+                            //                                collectionView.reloadItems(at: [indexPath])
+                            if let resultCell = (self.resultsTableView.cellForRow(at: IndexPath(item: characterInfo.id - 1, section: 0))) as? ResultsTableViewCell {
+                                resultCell.resultImageView.image = image
+                            }
+                            
+                        default: print("error fetching image for item \(indexPath.item)")
+                        }
+                    }
+                }
             }
         }
         return cell
@@ -223,21 +290,37 @@ extension Collection {
 
 extension URL {
     
-//    func requestPageContent(forCodable codable: Codable, completion: @escaping (Result<PageContent, Error>) -> Void) {
-//        DispatchQueue.global(qos: .default).async {
-//            if let jsonData = try? Data(contentsOf: self) {
-//                if let requestResults = try? JSONDecoder().decode(type(of: codable), from: jsonData) {
-//                    DispatchQueue.main.async {
-//                        completion(.success(requestResults))
-//                    }
-//                } else {
-//                    print("error: json decoder")
-//                }
-//                JSONDecoder().decode            } else {
-//                print("error: fetch data")
-//            }
-//        }
-//    }
+    func requestPageContent<Content: Codable>(forCodableType codableType: Content.Type, completion: @escaping (Result<Content, Error>) -> Void) {
+        DispatchQueue.global(qos: .default).async {
+            if let jsonData = try? Data(contentsOf: self) {
+                if let requestResults = try? JSONDecoder().decode(Content.self, from: jsonData) {
+                    DispatchQueue.main.async {
+                        completion(.success(requestResults))
+                    }
+                } else {
+                    print("error: json decoder")
+                }
+            } else {
+                print("error: fetch data")
+            }
+        }
+    }
+    
+    func fetchSearchResponse(completion: @escaping (Result<PageContent, Error>) -> Void) {
+        DispatchQueue.global(qos: .default).async {
+            if let jsonData = try? Data(contentsOf: self) {
+                if let requestResults = try? JSONDecoder().decode(PageContent.self, from: jsonData) {
+                    DispatchQueue.main.async {
+                        completion(.success(requestResults))
+                    }
+                } else {
+                    print("error: json decoder")
+                }
+            } else {
+                print("error: fetch data")
+            }
+        }
+    }
 }
 
 

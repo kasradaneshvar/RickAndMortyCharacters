@@ -98,66 +98,67 @@ class CharactersCollectionViewController: UICollectionViewController {
                         characterCell.imageView.image = blankAvatar
                     }
                 }
+            }
             characterCell.spinner.startAnimating()
-            if characterInfoDictionary[indexPath.item] == nil {
+            if characterInfoDictionary[indexPath.item + 1] == nil {
+                    
                 
-                
-//                if let url = characterURL?.appendingPathComponent(String(indexPath.item + 1)) {
-//                    loadCharacterInfo(fromURL: url)
-//                }
-//
-                
-                fetchCharacterInfo(forItem: indexPath.item) { // [weak self] in
-//                    if let characterInfo = self?.characterInfoDictionary[indexPath.item] {
-//                        if let imageURL = URL(string: characterInfo.image) {
-//                            characterCell.imageView.loadImage(usingURL: imageURL) { result in
-//                                switch result {
-//                                case .success(let image): characterCell.imageView.image = image
-//                                default: print("error fetching image for item \(indexPath.item)")
-//                                }
-//                            }
-//                        }
-//
-//                        characterCell.label.text = characterInfo.name
-//                    }
-                    collectionView.reloadItems(at: [indexPath])
+                if let url = characterURL?.appendingPathComponent(String(indexPath.item + 1)) {
+                    loadCharacterInfo(fromURL: url) {
+                        collectionView.reloadItems(at: [indexPath])
+                        print("\(indexPath.item) -> k\(url)")
+                    }
                 }
-            } else {
                 
-                if let characterInfo = characterInfoDictionary[indexPath.item] {
-                    characterCell.label.text = characterInfo.name
-                    if let image = cachedImages.object(forKey: characterInfo.image as NSString) as? UIImage {
-                        characterCell.imageView.image = image
-                        characterCell.spinner.stopAnimating()
-                    } else {
-
-                        }
-
-                        characterInfo.fetchImage { result in
-                            switch result {
-                            case .success(let image):
-                                cachedImages.setObject(image, forKey: characterInfo.image as NSString)
-//                                collectionView.reloadItems(at: [indexPath])
-                                if let characterCell = (self.collectionView.cellForItem(at: IndexPath(item: characterInfo.id - 1, section: 0))) as? CharacterCollectionViewCell {
-                                    characterCell.imageView.image = image
+                    
+//                    fetchCharacterInfo(forItem: indexPath.item) { // [weak self] in
+//                        //                    if let characterInfo = self?.characterInfoDictionary[indexPath.item] {
+//                        //                        if let imageURL = URL(string: characterInfo.image) {
+//                        //                            characterCell.imageView.loadImage(usingURL: imageURL) { result in
+//                        //                                switch result {
+//                        //                                case .success(let image): characterCell.imageView.image = image
+//                        //                                default: print("error fetching image for item \(indexPath.item)")
+//                        //                                }
+//                        //                            }
+//                        //                        }
+//                        //
+//                        //                        characterCell.label.text = characterInfo.name
+//                        //                    }
+                
+                    
+            } else {
+                    
+                    if let characterInfo = characterInfoDictionary[indexPath.item + 1] {
+                        characterCell.label.text = characterInfo.name
+                        if let image = cachedImages.object(forKey: characterInfo.image as NSString) as? UIImage {
+                            characterCell.imageView.image = image
+                            characterCell.spinner.stopAnimating()
+                        } else {
+                            characterInfo.fetchImage { result in
+                                print("fetching image for \(characterInfo.name)")
+                                switch result {
+                                case .success(let image):
+                                    print("fetched image for \(characterInfo.name)")
+                                    cachedImages.setObject(image, forKey: characterInfo.image as NSString)
+                                    //                                collectionView.reloadItems(at: [indexPath])
+                                    if let characterCell = (self.collectionView.cellForItem(at: IndexPath(item: characterInfo.id - 1, section: 0))) as? CharacterCollectionViewCell {
+                                        characterCell.imageView.image = image
+                                    }
+                                    
+                                default: print("error fetching image for item \(indexPath.item)")
                                 }
-
-                            default: print("error fetching image for item \(indexPath.item)")
                             }
                         }
-                        
-                        }
                     }
-                
+                }
             }
-        }
+        
         return cell
     }
     
 
     
     // MARK: - Fetching character info and setting cells.
-    var characterInfoDictionary: [Int:CharacterInfo] = [:]
     
 //    var lastFetchedItem: Int? {
 //        didSet {
@@ -168,40 +169,44 @@ class CharactersCollectionViewController: UICollectionViewController {
 //        }
 //    }
 
-//    func loadCharacterInfo(fromURL url: URL) {
-//        url.requestPageContent { result in
-//            switch result {
-//            // 🔺 Safe to use `self`?
-//            case .success(let pageContent): self.characterInfoDictionary[pageContent.results[0].id] = pageContent.results[0]
-//                print("added key \(pageContent.results[0].id)")
-//            default: print("character info unavailable")
-//            }
-//        }
-//    }
-//
-    
-    func fetchCharacterInfo(forItem item: Int, completion: @escaping () -> Void) {
-        if characterInfoDictionary[item] == nil {
-            let id = item + 1
-            if let url = characterURL?.appendingPathComponent(String(id)) {
-                DispatchQueue.global(qos: .default).async { [weak self] in
-                    if let jsonData = try? Data(contentsOf: url) {
-                        if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
-                            DispatchQueue.main.async {
-                                self?.characterInfoDictionary[item] = characterInfo
-                                completion()
-                            }
-                            
-                        }
-                    } else {
-                        print("character json decode error")
-                    }
-                }
+    // 🔺🔺 Too many threads.
+    func loadCharacterInfo(fromURL url: URL, completion: @escaping () -> Void ) {
+        url.requestPageContent(forCodableType: CharacterInfo.self) { result in
+            switch result {
+            // 🔺 Safe to use `self`?
+            case .success(let pageContent): characterInfoDictionary[pageContent.id] = pageContent
+                print("added key \(pageContent.id)")
+                completion()
+            default: print("character info unavailable")
             }
         }
     }
+
+    
+//    func fetchCharacterInfo(forItem item: Int, completion: @escaping () -> Void) {
+//        if characterInfoDictionary[item] == nil {
+//            let id = item + 1
+//            if let url = characterURL?.appendingPathComponent(String(id)) {
+//                DispatchQueue.global(qos: .default).async {
+//                    if let jsonData = try? Data(contentsOf: url) {
+//                        if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
+//                            DispatchQueue.main.async {
+//                                characterInfoDictionary[item] = characterInfo
+//                                completion()
+//                            }
+//
+//                        }
+//                    } else {
+//                        print("character json decode error")
+//                    }
+//                }
+//            }
+//        }
+//    }
     
 }
+
+var characterInfoDictionary: [Int:CharacterInfo] = [:]
 
 // MARK: - Cache
 let cachedImages = NSCache<AnyObject, AnyObject>()
