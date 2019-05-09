@@ -8,15 +8,16 @@
 
 import Foundation
 
-extension Pagination.Info {
-    
-}
-
-struct Pagination: Codable {
+struct PageContent: Codable {
     
     var info: Info
     
+    var results: [CharacterInfo]
+    
     struct Info: Codable {
         var count: Int
+        var next: String
     }
+    
+    func returnPageContent() {}
 }

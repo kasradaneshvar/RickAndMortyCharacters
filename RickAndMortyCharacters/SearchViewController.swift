@@ -124,7 +124,7 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         }
     }
     
-    var searchResultPageInfo: SearchResult.Info? {
+    var searchResultPageInfo: PageContent.Info? {
         didSet {
             if searchResultPageInfo?.count != oldValue?.count {
                 resultsTableView.reloadData()
@@ -136,7 +136,7 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         // 🔺 Is ther a memory cycle?
         DispatchQueue.global(qos: .default).async { [weak self] in
             if let jsonData = try? Data(contentsOf: url) {
-                if let searchResults = try? JSONDecoder().decode(SearchResult.self, from: jsonData) {
+                if let searchResults = try? JSONDecoder().decode(PageContent.self, from: jsonData) {
                     DispatchQueue.main.async {
                         self?.searchResultPageInfo = searchResults.info
                         self?.searchResultsCharacterInfo += searchResults.results
@@ -201,7 +201,6 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
 
 extension CharacterInfo {
     func fetchImage(completion: @escaping (Result<UIImage, Error>) -> Void) {
-        
         if let imageURL = URL(string: image) {
             DispatchQueue.global(qos: .default).async {
                 if let imageData = try? Data(contentsOf: imageURL) {
@@ -221,3 +220,24 @@ extension Collection {
         return indices.contains(index) ? self[index] : nil
     }
 }
+
+extension URL {
+    
+//    func requestPageContent(forCodable codable: Codable, completion: @escaping (Result<PageContent, Error>) -> Void) {
+//        DispatchQueue.global(qos: .default).async {
+//            if let jsonData = try? Data(contentsOf: self) {
+//                if let requestResults = try? JSONDecoder().decode(type(of: codable), from: jsonData) {
+//                    DispatchQueue.main.async {
+//                        completion(.success(requestResults))
+//                    }
+//                } else {
+//                    print("error: json decoder")
+//                }
+//                JSONDecoder().decode            } else {
+//                print("error: fetch data")
+//            }
+//        }
+//    }
+}
+
+
