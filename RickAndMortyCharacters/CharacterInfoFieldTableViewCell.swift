@@ -8,7 +8,7 @@
 
 import UIKit
 
-class CharacterDetailTableViewCell: UITableViewCell {
+class CharacterInfoFieldTableViewCell: UITableViewCell {
 
     @IBOutlet weak var titleLable: UILabel!
     

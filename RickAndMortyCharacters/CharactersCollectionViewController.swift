@@ -50,18 +50,15 @@ class CharactersCollectionViewController: UICollectionViewController {
     // id is not indexPath.item
     
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        self.performSegue(withIdentifier: "Show Info Detail", sender: indexPath)
+//        self.performSegue(withIdentifier: "Show Info Detail", sender: indexPath)
+        print(indexPath.item)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "Show Info Detail" {
             if let indexPath = sender as? IndexPath {
                 if let ctvc = segue.destination as? CharacterDetailViewController {
-                    //                    ctvc.characterIdentifier = indexPath.item + 1
-                    //                    if let (name, image) = characterCellInfo[indexPath.item + 1] {
-                    //                        ctvc.characterImage = image
-                    //                        ctvc.characterName = name
-                    ctvc.characterInfo = characterInfoDictionary[indexPath]
+                    ctvc.characterInfo = characterInfoDictionary[indexPath.item]
                     if let characterCell = (collectionView.cellForItem(at: indexPath)) as? CharacterCollectionViewCell {
                         if let image = characterCell.imageView.image, let name = characterCell.label.text {
                             ctvc.characterImage = image
@@ -88,42 +85,47 @@ class CharactersCollectionViewController: UICollectionViewController {
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        print(indexPath.item)
         spinner.stopAnimating()
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CharacterCell", for: indexPath)
         if let characterCell = cell as? CharacterCollectionViewCell {
-            characterCell.spinner.startAnimating()
-            if characterInfoDictionary[indexPath] == nil {
-                fetchCharacterInfo(forIndexPath: indexPath)
-            }
-            else {
-                indexOfTheLastFetchedCharacterInfo = indexPath
-            }
+            characterCell.label.text = "\(indexPath.item)"
+            
+//            characterCell.spinner.startAnimating()
+//            if characterInfoDictionary[indexPath.item] == nil {
+//                fetchCharacterInfo(forItem: indexPath.item)
+//            }
+//            else {
+//                lastFetchedItem = indexPath.item
+//            }
         }
         return cell
     }
     
-    // MARK: - Fetching character info and setting cells.
-    var characterInfoDictionary: [IndexPath:CharacterInfo] = [:]
+
     
-    var indexOfTheLastFetchedCharacterInfo: IndexPath? {
+    // MARK: - Fetching character info and setting cells.
+    var characterInfoDictionary: [Int:CharacterInfo] = [:]
+    
+    var lastFetchedItem: Int? {
         didSet {
-            if let indexPath = indexOfTheLastFetchedCharacterInfo {
-                setCharacterName(forIndexPath: indexPath)
-                setCharacterImage(forIndexPath: indexPath)
+            if let item = lastFetchedItem {
+                setCharacterName(forItem: item)
+                setCharacterImage(forItem: item)
             }
         }
     }
 
-    func fetchCharacterInfo(forIndexPath indexPath: IndexPath) {
-        if characterInfoDictionary[indexPath] == nil {
-            let id = indexPath.item + 1
+    func fetchCharacterInfo(forItem item: Int) {
+        if characterInfoDictionary[item] == nil {
+            let id = item + 1
             if let url = characterURL?.appendingPathComponent(String(id)) {
                 DispatchQueue.global(qos: .default).async { [weak self] in
                     if let jsonData = try? Data(contentsOf: url) {
                         if let characterInfo = try? JSONDecoder().decode(CharacterInfo.self, from: jsonData) {
                             DispatchQueue.main.async {
-                                self?.characterInfoDictionary[indexPath] = characterInfo
-                                self?.indexOfTheLastFetchedCharacterInfo = indexPath
+                                self?.characterInfoDictionary[item] = characterInfo
+                                self?.lastFetchedItem = item
                             }
                             
                         }
@@ -135,37 +137,47 @@ class CharactersCollectionViewController: UICollectionViewController {
         }
     }
     
-    var fetchedImageForIndexPath: [IndexPath:UIImage]
+    var fetchedImageForItem: [Int:UIImage] = [:]
     
-    func setCharacterImage(forIndexPath indexPath: IndexPath) {
-        if fetchedImageForIndexPath[indexPath] == nil {
-            if let characterInfo = characterInfoDictionary[indexPath] {
-                if let imageURL = URL(string: characterInfo.image) {
-                    DispatchQueue.global(qos: .default).async { [weak self] in
-                        if let imageData = try? Data(contentsOf: imageURL) {
-                            let image = UIImage(data: imageData)
-                            DispatchQueue.main.async {
-                                if let characterCell = (self?.collectionView.cellForItem(at: indexPath)) as? CharacterCollectionViewCell {
-                                    characterCell.imageView.image = image
+    func setCharacterImage(forItem item: Int) {
+        if let characterCell = (self.collectionView.cellForItem(at: IndexPath(item: item, section: 0))) as? CharacterCollectionViewCell {
+            if fetchedImageForItem[item] == nil {
+                if let characterInfo = characterInfoDictionary[item] {
+                    if let imageURL = URL(string: characterInfo.image) {
+                        characterCell.spinner.startAnimating()
+                        DispatchQueue.global(qos: .default).async {
+                            if let imageData = try? Data(contentsOf: imageURL) {
+                                let image = UIImage(data: imageData)
+                                DispatchQueue.main.async {
+
+                                        characterCell.imageView.image = image
                                     characterCell.spinner.stopAnimating()
                                 }
                             }
                         }
                     }
                 }
+            } else {
+                characterCell.imageView.image = fetchedImageForItem[item]
             }
-        } else {
-            
         }
     }
     
-    func setCharacterName(forIndexPath indexPath: IndexPath) {
-        if let characterInfo = characterInfoDictionary[indexPath] {
+    func setCharacterName(forItem item: Int) {
+        if let characterInfo = characterInfoDictionary[item] {
             let name = characterInfo.name
-            if let characterCell = (self.collectionView.cellForItem(at: indexPath)) as? CharacterCollectionViewCell {
+            if let characterCell = (self.collectionView.cellForItem(at: IndexPath(item: item, section: 0))) as? CharacterCollectionViewCell {
                 characterCell.label.text = name
             }
         }
     }
     
 }
+
+// MARK: - Cache
+let fetchedImageCache = NSCache<AnyObject, AnyObject>()
+
+// MARK: - UILabel extension
+//extension UILabel {
+//    func fetchLabelText(fromURL url: URL, @escaping
+//}

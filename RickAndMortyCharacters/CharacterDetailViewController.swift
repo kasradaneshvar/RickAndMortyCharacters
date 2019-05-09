@@ -157,7 +157,7 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = characterInfoTableView.dequeueReusableCell(withIdentifier: "Detail Cell", for: indexPath)
-        if let characterDetailCell = cell as? CharacterDetailTableViewCell {
+        if let characterDetailCell = cell as? CharacterInfoFieldTableViewCell {
             if indexPath.section == 0 {
                 if let (title, value) = aboutCharacter?[indexPath.item] {
                     characterDetailCell.titleLable.text = title
@@ -173,43 +173,4 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
         return cell
     }
-    
-    
-    /*
-     // Saving with `FileManager`(?).
-     @IBAction func save(_ sender: UIBarButtonItem) {
-     if let json = emojiArt?.json {
-     // "Not replacing a file so `appropriateFor: nil`"(?).
-     // Also, should add 'Supports Document Brower: Yes' to `info.plist`.
-     if let url = try?  FileManager.default.url(
-     for: .documentDirectory,
-     in: .userDomainMask,
-     appropriateFor: nil,
-     create: true
-     ).appendingPathComponent("Untitled.json") {
-     do {
-     try json.write(to: url)
-     print("saved successfully!")
-     } catch let error {
-     print("error: \(error)")
-     }
-     }
-     }
-     }
-     
-     override func viewWillAppear(_ animated: Bool) {
-     super.viewWillAppear(animated)
-     
-     if let url = try?  FileManager.default.url(
-     for: .documentDirectory,
-     in: .userDomainMask,
-     appropriateFor: nil,
-     create: true
-     ).appendingPathComponent("Untitled.json") {
-     if let jsonData = try? Data(contentsOf: url) {
-     emojiArt = EmojiArt(json: jsonData)
-     }
-     }
-     }
-     */
 }
