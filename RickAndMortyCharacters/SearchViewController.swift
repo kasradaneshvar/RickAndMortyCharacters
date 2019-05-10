@@ -114,18 +114,18 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
             case .success(let response):
                 // 🔺 `self` in closure.
                 self.numberOfHits = response.info.count
-                response.results.forEach { item in
-                    self.idsOfHits.append(item.id)
-                    if characterInfoDictionary[item.id] == nil {
-                        characterInfoDictionary[item.id] = item
-                        print("\(item.id) ->\(item.name)")
+                response.results.forEach {
+                    self.idsOfHits.append($0.id)
+                    if characterInfoDictionary[$0.id] == nil {
+                        characterInfoDictionary[$0.id] = $0
                     }
                 }
                 // 🔺🔺 `self` in closure. Very suspeciously a memory cycle.
                 if let nextURL = URL(string: response.info.next) {
                     self.searchForCharacter(inURL: nextURL)
                 }
-            default: print("failed")
+            default:
+                print("search failed")
             }
         }
         
@@ -150,29 +150,38 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         let cell = resultsTableView.dequeueReusableCell(withIdentifier: "Result Cell", for: indexPath)
         if let resultCell = cell as? ResultsTableViewCell {
             resultCell.resultImageView.setBlankAvatar()
-            let characterId = idsOfHits[indexPath.item]
-            if let characterInfo = characterInfoDictionary[characterId] {
-                resultCell.nameLabel.text = characterInfo.name
-                if let image = cachedImages.object(forKey: characterInfo.image as NSString) as? UIImage {
-                    resultCell.resultImageView.image = image
-                } else {
-                    characterInfo.fetchImage { result in
-                        switch result {
-                        case .success(let image):
-                            
-                            
-                            
-                            cachedImages.setObject(image, forKey: characterInfo.image as NSString)
-                            //                                collectionView.reloadItems(at: [indexPath])
-                            if let resultCell = (self.resultsTableView.cellForRow(at: IndexPath(item: characterInfo.id - 1, section: 0))) as? ResultsTableViewCell {
-                                resultCell.resultImageView.image = image
+            if let characterId = idsOfHits[safe: indexPath.item] {
+                
+                
+                if let characterInfo = characterInfoDictionary[characterId] {
+                    resultCell.nameLabel.text = characterInfo.name
+                    if let image = cachedImages.object(forKey: characterInfo.image as NSString) as? UIImage {
+                        resultCell.resultImageView.image = image
+                    } else {
+                        characterInfo.fetchImage { result in
+                            switch result {
+                            case .success(let image):
+                                
+                                
+                                
+                                cachedImages.setObject(image, forKey: characterInfo.image as NSString)
+                                
+                                
+                                self.resultsTableView.reloadRows(at: [indexPath], with: .none)
+                                
+                                
+                                //                            if let resultCell = (self.resultsTableView.cellForRow(at: IndexPath(item: characterInfo.id - 1, section: 0))) as? ResultsTableViewCell {
+                                //                                resultCell.resultImageView.image = image
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                            default: print("error: fetching image for search item \(indexPath.item)")
                             }
-                            
-                            
-                            
-                            
-                            
-                        default: print("error fetching image for item \(indexPath.item)")
                         }
                     }
                 }
@@ -194,7 +203,7 @@ class SearchViewController: UIViewController, UITextFieldDelegate, UITableViewDe
         if segue.identifier == "Show Info Detail" {
             if let indexPath = sender as? IndexPath {
                 if let ctvc = segue.destination as? CharacterDetailViewController {
-                    ctvc.characterInfo = characterInfoDictionary[indexPath.item + 1]
+                    ctvc.characterInfo = characterInfoDictionary[idsOfHits[indexPath.item]]
                 }
             }
         }

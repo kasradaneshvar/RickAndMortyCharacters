@@ -49,9 +49,13 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         didSet {
             aboutCharacter = characterInfo?.about()
             characterLocationDetail = characterInfo?.location.about()
+            
             characterInfo?.fetchImage { result in
+                print("fetching image detail")
                 switch result {
                 case .success(let image): self.characterImage = image
+                    print("fetched image detail")
+                    
                 // ❓ Is this the only way to make sure outlets are set?
 //                    self.viewDidLoad()
                 default: print("failed to set detail image")
@@ -98,22 +102,14 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        
         // ❓ Is this the only way [again] to make sure outlets are set?
-
         characterNameLabel.text = ""
         characterImageView.setBlankAvatar()
-
-//        if let url = blankAvatarURL {
-//            if let blankAvatarData = try? Data(contentsOf: url) {
-//
-//                if let blankAvatar = UIImage(data: blankAvatarData) {
-//                    characterImageView.image = blankAvatar
-//                }
-//            }
-//        }
-//
+        loadCharacter()
+ 
+    }
+    
+    func loadCharacter() {
         if let id = characterInfo?.id {
             if let url = try?  FileManager.default.url(
                 for: .documentDirectory,
@@ -136,10 +132,9 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     func updateViewFromModel() {
         if let name = characterInfo?.name {
             characterNameLabel.text = name
+            print("inside name label: name is \(name)")
         }
-        if let image = characterImage {
-            characterImageView.image = image
-        }
+        
     }
     
     

@@ -19,29 +19,28 @@ class FavoritesTableViewController: UITableViewController {
     
     var favoriteCharacters: [Character] = []
     
-    func fetchFavorites(completion: @escaping () -> Void) {
+    func fetchFavorites() {
         if let url = documentsURL {
-            print(url)
             if let directoryContents = try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) {
                 let jsonFiles = directoryContents.filter { $0.pathExtension == "json" }
                 jsonFiles.forEach {
-                    $0.requestContent(forCodableType: Character.self) { result in
-                        switch result {
-                        case .success(let item): self.favoriteCharacters.append(item)
-                        default: return
+                    // Should have used `requestContent`. But apparently the threaded nature of
+                    //  it will make it unhelpful.
+                    if let favoriteCharacterData = try? Data(contentsOf: $0) {
+                        if let favoriteCharacter = try? JSONDecoder().decode(Character.self, from: favoriteCharacterData) {
+                            self.favoriteCharacters.append(favoriteCharacter)
+                            characterInfoDictionary[favoriteCharacter.characterInfo.id] = favoriteCharacter.characterInfo
                         }
                     }
                 }
             }
         }
+        tableView.reloadData()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        fetchFavorites() {
-            self.tableView.reloadData()
-            print(self.favoriteCharacters.count)
-        }
+        fetchFavorites()
     }
     
     // MARK: - Table view data source
@@ -51,32 +50,53 @@ class FavoritesTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        print(favoriteCharacters.count)
         return favoriteCharacters.count
     }
 
-    /*
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Favorite Result Cell", for: indexPath)
+        if let resultCell = cell as? ResultsTableViewCell {
+            let character = favoriteCharacters[indexPath.item]
+            resultCell.nameLabel.text = character.characterInfo.name
+            if let characterImage = cachedImages.object(forKey: character.characterInfo.image as NSString) as? UIImage {
+                resultCell.resultImageView.image = characterImage
+            } else {
+                resultCell.resultImageView.setBlankAvatar()
+                character.characterInfo.fetchImage { result in
+                    switch result {
+                    case .success(_):
+                        tableView.reloadRows(at: [indexPath], with: .none)
+                    default: print("error: favorite character image not found.")
+                    }
+                }
+            }
 
-        // Configure the cell...
-
+        }
         return cell
     }
-    */
+
+
+
+
 
     
-
-
-    /*
     // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+     
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        self.performSegue(withIdentifier: "Show Info Detail", sender: indexPath)
+        
     }
-    */
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "Show Info Detail" {
+            if let indexPath = sender as? IndexPath {
+                if let ctvc = segue.destination as? CharacterDetailViewController {
+                    ctvc.characterInfo = favoriteCharacters[indexPath.item].characterInfo
+                }
+            }
+        }
+    }
 
 }
 
