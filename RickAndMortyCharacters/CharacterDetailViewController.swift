@@ -23,25 +23,6 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
-    var characterInfo: CharacterInfo? {
-        didSet {
-            aboutCharacter = characterInfo?.about()
-            characterLocationDetail = characterInfo?.location.about()
-            characterIdentifier = characterInfo?.id
-        }
-    }
-    
-    var characterIdentifier: Int!
-    
-    var characterImage: UIImage?
-    
-    var characterName: String?
-    
-    @IBOutlet weak var characterImageView: UIImageView!
-    
-    @IBOutlet weak var characterNameLabel: UILabel!
-    
-    
     func saveCharacter() {
         if let json = character?.json {
             if let id = character?.characterInfo.id {
@@ -63,6 +44,27 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         } else {
         }
     }
+    
+    var characterInfo: CharacterInfo? {
+        didSet {
+            aboutCharacter = characterInfo?.about()
+            characterLocationDetail = characterInfo?.location.about()
+            characterInfo?.fetchImage { result in
+                switch result {
+                case .success(let image): self.characterImage = image
+                // ❓ Is this the only way to make sure outlets are set?
+//                    self.viewDidLoad()
+                default: print("failed to set detail image")
+                }
+            }
+        }
+    }
+    
+    var characterImage: UIImage?
+
+    @IBOutlet weak var characterImageView: UIImageView!
+    
+    @IBOutlet weak var characterNameLabel: UILabel!
     
     @IBOutlet weak var addToFavoriteButton: UIButton!
     
@@ -96,7 +98,23 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if let id = characterIdentifier {
+        
+        
+        // ❓ Is this the only way [again] to make sure outlets are set?
+
+        characterNameLabel.text = ""
+        characterImageView.setBlankAvatar()
+
+//        if let url = blankAvatarURL {
+//            if let blankAvatarData = try? Data(contentsOf: url) {
+//
+//                if let blankAvatar = UIImage(data: blankAvatarData) {
+//                    characterImageView.image = blankAvatar
+//                }
+//            }
+//        }
+//
+        if let id = characterInfo?.id {
             if let url = try?  FileManager.default.url(
                 for: .documentDirectory,
                 in: .userDomainMask,
@@ -114,12 +132,18 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
         }
     }
     
+    
     func updateViewFromModel() {
-        if let name = characterName, let image = characterImage {
+        if let name = characterInfo?.name {
             characterNameLabel.text = name
+        }
+        if let image = characterImage {
             characterImageView.image = image
         }
     }
+    
+    
+    // MARK: -UITableViewDataSource
     
     // 🔺 This is by far the "best bad" idea for getting the JSON info
     //  in a way that is (a) `Sequence` and (b) patitioned. But it
@@ -129,7 +153,6 @@ class CharacterDetailViewController: UIViewController, UITableViewDelegate, UITa
     var aboutCharacter: [(String, String)]?
     var characterLocationDetail: [(String, String)]?
     
-    // MARK: -UITableViewDataSource
     func numberOfSections(in tableView: UITableView) -> Int {
         return 2
     }

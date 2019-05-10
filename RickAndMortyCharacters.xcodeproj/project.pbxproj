@@ -22,6 +22,8 @@
 		56457FC1228221A3002E153C /* ResultsTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56457FC0228221A3002E153C /* ResultsTableViewCell.swift */; };
 		56457FC52282BF4C002E153C /* SearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56457FC42282BF4C002E153C /* SearchResult.swift */; };
 		56457FC922846CAC002E153C /* blankAvatar.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 56457FC822846CAC002E153C /* blankAvatar.jpeg */; };
+		56457FCB22857075002E153C /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56457FCA22857075002E153C /* Utilities.swift */; };
+		5660E8F0228598B200E34094 /* FavoritesTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5660E8EF228598B200E34094 /* FavoritesTableViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +44,8 @@
 		56457FC0228221A3002E153C /* ResultsTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsTableViewCell.swift; sourceTree = "<group>"; };
 		56457FC42282BF4C002E153C /* SearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchResult.swift; sourceTree = "<group>"; };
 		56457FC822846CAC002E153C /* blankAvatar.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = blankAvatar.jpeg; sourceTree = "<group>"; };
+		56457FCA22857075002E153C /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
+		5660E8EF228598B200E34094 /* FavoritesTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesTableViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +78,7 @@
 		56457F96227F17A5002E153C /* RickAndMortyCharacters */ = {
 			isa = PBXGroup;
 			children = (
+				56457FCA22857075002E153C /* Utilities.swift */,
 				56457FC42282BF4C002E153C /* SearchResult.swift */,
 				56457FC0228221A3002E153C /* ResultsTableViewCell.swift */,
 				56457FBE2281B5A6002E153C /* SearchViewController.swift */,
@@ -84,6 +89,7 @@
 				56457FB2227F1BB8002E153C /* CharacterInfo.swift */,
 				56457FAE227F1850002E153C /* CharacterCollectionViewCell.swift */,
 				56457FB0227F1859002E153C /* CharactersCollectionViewController.swift */,
+				5660E8EF228598B200E34094 /* FavoritesTableViewController.swift */,
 				56457FB8227F5790002E153C /* Character.swift */,
 				56457FC822846CAC002E153C /* blankAvatar.jpeg */,
 				56457FA9227F17B7002E153C /* Supporting Files */,
@@ -175,11 +181,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				56457FC52282BF4C002E153C /* SearchResult.swift in Sources */,
+				5660E8F0228598B200E34094 /* FavoritesTableViewController.swift in Sources */,
 				56457FBD227F7EAD002E153C /* CharacterInfoFieldTableViewCell.swift in Sources */,
 				56457FB1227F1859002E153C /* CharactersCollectionViewController.swift in Sources */,
 				56457FAF227F1850002E153C /* CharacterCollectionViewCell.swift in Sources */,
 				56457FBF2281B5A6002E153C /* SearchViewController.swift in Sources */,
 				56457FC1228221A3002E153C /* ResultsTableViewCell.swift in Sources */,
+				56457FCB22857075002E153C /* Utilities.swift in Sources */,
 				56457FB9227F5791002E153C /* Character.swift in Sources */,
 				56457FB5227F1BDF002E153C /* PageContent.swift in Sources */,
 				56457FBB227F6AF5002E153C /* CharacterDetailViewController.swift in Sources */,
